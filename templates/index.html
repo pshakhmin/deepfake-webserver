@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Детекция дипефейков на фото</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.0/css/bulma.min.css">
+  <link id="favicon" rel="icon" type="image/x-icon" href="static/icon.png">
+
+  <script type="text/javascript">
+    window.onload = function () {
+      console.log('loaded');
+      const fileInput = document.querySelector("#file input[type=file]");
+      const uploadedImage = document.getElementById("uploaded_image");
+      document.getElementById('send').addEventListener('click', function () {
+        console.log('click');
+        var button = document.getElementById('send');
+        if (fileInput.files.length == 0)
+          return;
+        var reader = new FileReader();
+
+        reader.onload = function (event) {
+          uploadedImage.setAttribute("width", "200px");
+          uploadedImage.src = event.target.result;
+        };
+
+        var selectedFile = fileInput.files[0];
+        reader.readAsDataURL(selectedFile);
+
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', 'process', true);
+
+        xhr.onreadystatechange = function () {
+          if (xhr.readyState == 4 && xhr.status == 200) {
+            var response = JSON.parse(xhr.responseText);
+            var fakeProb = response["probability"] * 100;
+            button.classList.remove('shine-button');
+            button.innerHTML = 'Обработать';
+            var outputCard = document.getElementById("outputCard");
+            outputCard.style.display = "block";
+            document.getElementById("fake_title").innerHTML = "Вероятность фейка: " + fakeProb.toPrecision(3) + "%";
+            var progressBar = document.getElementById("progress_fake");
+            progressBar.value = fakeProb.toPrecision(4);
+            console.log(response);
+            var lrpImgTag = document.getElementById("lrp_img");
+            lrpImgTag.src = 'data:image/jpeg;base64,' + response["lrp"];
+            if (fakeProb < 20) {
+              progressBar.classList.remove("is-warning");
+              progressBar.classList.add("is-primary");
+              progressBar.classList.remove("is-danger");
+            }
+            else if (fakeProb < 80) {
+              progressBar.classList.add("is-warning");
+              progressBar.classList.remove("is-primary");
+              progressBar.classList.remove("is-danger");
+            }
+            else {
+              progressBar.classList.remove("is-warning");
+              progressBar.classList.remove("is-primary");
+              progressBar.classList.add("is-danger");
+            }
+          }
+
+        };
+        const formData = new FormData();
+        formData.append("file", fileInput.files[0]);
+        button.classList.add('shine-button');
+        button.innerHTML = 'В процессе...';
+        xhr.send(formData);
+      });
+
+      fileInput.onchange = () => {
+        if (fileInput.files.length > 0) {
+          const fileName = document.querySelector("#file .file-name");
+          console.log("updated");
+          fileName.textContent = fileInput.files[0].name;
+        }
+      };
+    };
+  </script>
+</head>
+
+<body>
+  <style>
+    /* Style for the button */
+    span {
+      margin-right: 5px;
+    }
+
+    .button {
+      color: white;
+      display: inline-block;
+      padding: 10px 20px;
+      background: linear-gradient(45deg, #0ffff1, #20b0e0);
+      border: none;
+      border-radius: 5px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .shine-button {
+      display: inline-block;
+      padding: 10px 20px;
+      background: linear-gradient(45deg, #0ffff1, #20b0e0);
+      border: none;
+      border-radius: 5px;
+      color: white;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      transition: background-color 0.3s ease;
+      /* Add transition effect */
+    }
+
+    /* Animation for the shine effect */
+    .shine-button::before {
+      content: "";
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 100%;
+      height: 200%;
+      background: rgba(255, 255, 255, 0.2);
+      transform: rotate(45deg);
+      animation: shine 2s infinite;
+    }
+
+    @keyframes shine {
+      0% {
+        transform: translate(-50%, -50%) rotate(45deg);
+      }
+
+      100% {
+        transform: translate(150%, 150%) rotate(45deg);
+      }
+    }
+
+    /* Hover effect */
+    .shine-hova:hover {
+      background: linear-gradient(45deg, #ff9900, #ffcc00);
+      /* Change gradient colors on hover */
+    }
+  </style>
+  <section class="hero is-fullheight">
+    <div class="hero-head is-fluid">
+      <nav class="navbar" role="navigation" aria-label="main navigation">
+
+        <div class="navbar-brand">
+          <a class="navbar-item" href="../">
+            <img src="static/icon.png">
+            <p class="subtitle is-4">Обнаружение дипфейков</p>
+          </a>
+        </div>
+
+        <div id="navbarBasicExample" class="navbar-menu">
+          <div class="navbar-end">
+            <div class="navbar-start">
+              <a class="navbar-item" href="/">
+                Обработка фото
+              </a>
+              <a class="navbar-item" href="/video">
+                Обработка видео
+              </a>
+
+              <a class="navbar-item" href="docs">
+                API
+              </a>
+            </div>
+          </div>
+        </div>
+      </nav>
+    </div>
+
+
+    <div class="hero-body">
+      <div class="container has-text-centered">
+        <p class="title is-1 is-spaced">
+          Обнаружение дипфейков на фото
+        </p>
+        <p class="subtitle is-">
+          Загрузите изображение для обработки
+        </p>
+
+
+        <div class="box is-two-thirds is-rounded" id="resultsField">
+          <div class="field">
+            <div class="control">
+              <form>
+                <div id="file" class="file is-centered is-boxed has-name">
+                  <label class="file-label">
+                    <input class="file-input" type="file" accept="image/png, image/jpeg" name="resume" />
+                    <span class="file-cta">
+                      <span class="file-icon">
+                        <i class="fas fa-upload"></i>
+                      </span>
+                      <span class="file-label">
+                        <figure class="image is-square">
+                          <img id="uploaded_image"> Выберите файл
+                        </figure>
+                      </span>
+                    </span>
+                    <span class="file-name"> </span>
+                  </label>
+                </div>
+                <button type="button" id='send' class="button is-medium mt-2 is-fullwidth">Обработать</button>
+              </form>
+              <br>
+              <div id="outputCard" class="box" style="display:none">
+                <p class="title is-2 is-spaced" id="fake_title"> </p>
+                <img id="lrp_img" style="max-width:600px;width:100%">
+                <progress id="progress_fake" class="progress" max="100">
+                </progress>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+  </section>
+</body>
+
+
+
+</html>

@@ -1,0 +1,25 @@
+services:
+  rabbitmq:
+    container_name: rabbitmq
+    image: rabbitmq:latest
+    hostname: rabbitmq
+    env_file: .env
+    ports:
+      - 5672:5672
+    healthcheck:
+      test: rabbitmq-diagnostics check_port_connectivity
+      interval: 1s
+      timeout: 3s
+      retries: 30
+
+  webserver:
+    build:
+      context: .
+    environment:
+      - RABBITMQ_HOST=rabbitmq
+    env_file: .env
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    ports:
+      - 8000:80
